@@ -1,16 +1,16 @@
+import os 
 import random
 from animal import Empty, Zebra, Lion
-from utils import print_TODO
+
 
 class CircleOfLife:
     def __init__(self, world_size, num_zebras, num_lions):
         self.world_size = world_size
         self.grid = [[Empty(y, x) for y in range(self.world_size)]
                                   for x in range(self.world_size)]
-        random.seed()
         zebra_coords, lion_coords = self.get_random_coords(num_zebras, num_lions)
         for y, x in zebra_coords:
-            self.grid[y][x] = Zebra(y, x)
+            self.grid[y][x] = Zebra(y, x) 
         for y, x in lion_coords:
             self.grid[y][x] = Lion(y, x)
         self.timestep = 0
@@ -21,21 +21,17 @@ class CircleOfLife:
 
     def get_random_coords(self, num_zebras, num_lions):
         all_coords = [(y, x) for y in range(self.world_size)
-                      for x in range(self.world_size)]
+                       for x in range(self.world_size)]
         zebra_coords = random.sample(all_coords, num_zebras)
         all_coords = list(set(all_coords) - set(zebra_coords))
-        lion_coords = random.sample(all_coords,num_lions)
+        lion_coords = random.sample(all_coords, num_lions)
         return zebra_coords, lion_coords
 
-    def update_grid(self):
-        self.grid = [['.' for _ in range(self.world_size)]
-                          for _ in range(self.world_size)]
-        for animal in self.zebras:
-            self.grid[animal.y][animal.x] = 'Z'
-        for animal in self.lions:
-            self.grid[animal.y][animal.x] = 'L'
-
     def display(self):
+        if os.name == 'nt':
+            os.system('cls')
+        else:
+            os.system('clear')
         print(f'Clock: {self.timestep}')
         top_coord_str = ' '.join([f'{coord}' for coord in range(len(self.grid))])
         print('   ' + top_coord_str)
@@ -50,28 +46,45 @@ class CircleOfLife:
         animals = [animal for line in self.grid for animal in line
                    if not isinstance(animal, Empty)]
         for animal in animals:
-            animal.move(self.grid) 
+            if animal.hp != 0:
+                if isinstance(animal, Lion):
+                    lion = animal
+                    zebra_neighbors = lion.get_neighbors(self.grid, target='Z')
+                    if len(zebra_neighbors) > 0:
+                        chosen_neighbor = random.choice(zebra_neighbors)
+                        self.grid[lion.y][lion.x] = Empty(lion.y, lion.x)
+                        lion.y, lion.x = chosen_neighbor
+                        self.grid[lion.y][lion.x].hp = 0  # kill
+                        self.grid[lion.y][lion.x] = lion
+                    else:
+                        lion.move_to(self.grid, target='.')
+                else:
+                    animal.move_to(self.grid, target='.')
 
     def step_breed(self):
         animals = [animal for line in self.grid for animal in line
                    if not isinstance(animal, Empty)
                    and animal.is_ready_to_breed()]
-        for animal in animals:
+        for animal in animals.copy(): 
             animal.breed(self.grid)
-        
-    def clear_bodies(self):
-        for y, line in enumerate(self.grid):
-            for x, animal in enumerate(line):
-                if animal.hp == 0:
-                    self.grid[y][x] = Empty(y, x)
+
 
     def housekeeping(self):
-        for y, line in enumerate(self.grid):
-            for x, animal in enumerate(line):
-                if animal.hp == 0:
-                    self.grid[y][x] = Empty(y, x)
-                else:
-                    self.grid[y][x].age += 1
+        for y in range(len(self.grid)):
+            line = self.grid[y]
+            for x in range(len(line)):
+                animal = line[x]
+                if isinstance(animal, Lion):
+                    animal.age += 1
+                    if animal.hp <= 0: 
+                        self.grid[y][x] = Empty(y, x)
+                    elif animal.age % 3 == 0:  
+                        animal.hp -= 1  
+                        if animal.hp <= 0: 
+                            self.grid[y][x] = Empty(y, x)
+
+
+
 
 
     def run(self, num_timesteps=100):
@@ -86,8 +99,9 @@ class CircleOfLife:
 
 
 if __name__ == '__main__':
-    safari = CircleOfLife(5, 5, 2)
-    # safari.display()
-    # safari.step_move()
-    # safari.step_breed()
-    safari.run(7)
+    world_size = 20
+    num_zebras = 100
+    num_lions = 5
+
+    safari = CircleOfLife(world_size, num_zebras, num_lions)
+    safari.run(10)
