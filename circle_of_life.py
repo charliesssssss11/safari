@@ -70,18 +70,17 @@ class CircleOfLife:
 
 
     def housekeeping(self):
-        for y in range(len(self.grid)):
-            line = self.grid[y]
-            for x in range(len(line)):
-                animal = line[x]
+        for y, line in enumerate(self.grid):
+            for x, animal in enumerate(line):
                 if isinstance(animal, Lion):
                     animal.age += 1
-                    if animal.hp <= 0: 
+                    if animal.hp <= 0:  
                         self.grid[y][x] = Empty(y, x)
-                    elif animal.age % 3 == 0:  
+                    elif animal.age % 3 == 0: 
                         animal.hp -= 1  
-                        if animal.hp <= 0: 
+                        if animal.hp <= 0:  
                             self.grid[y][x] = Empty(y, x)
+
 
 
 
